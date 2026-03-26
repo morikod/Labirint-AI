@@ -22,7 +22,13 @@ def generate():
     user_prompt = data.get('prompt', '')
     
     # Jednoduché instrukce
-    instructions = "Jsi vypravěč textové hry. Piš příběh, ASCII art a volby A,B,C. Česky."
+    instructions = (
+        "Jsi vypravěč textové mini-hry. Tvé odpovědi musí být velmi KRÁTKÉ (max 2 věty příběhu).\n"
+        "1. Pokud je is_start=True, vezmi 3 slova a vytvoř úvod, malý ASCII art a volby A, B, C.\n"
+        "2. Pokud is_start=False, uživatel SMÍ zadat pouze 'A', 'B' nebo 'C'.\n"
+        "3. Pokud uživatel napíše cokoli jiného než A, B nebo C, odpověz POUZE větou: 'Prosím, vyberte si z variant A, B nebo C.'\n"
+        "4. ASCII art dělej velmi malý (max 5 řádků)."
+    )
 
     try:
         response = client.chat.completions.create(
