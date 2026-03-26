@@ -3,9 +3,9 @@ const input = document.getElementById('user-input');
 const btn = document.getElementById('send-btn');
 const stopBtn = document.getElementById('stop-btn');
 
-let gameStarted = false; // Sleduje, jestli už proběhl úvod
+let gameStarted = false;
 
-function typeText(element, text, speed = 15) {
+function typeText(element, text, speed = 10) {
     return new Promise((resolve) => {
         let i = 0;
         function type() {
@@ -14,48 +14,43 @@ function typeText(element, text, speed = 15) {
                 i++;
                 output.scrollTop = output.scrollHeight;
                 setTimeout(type, speed);
-            } else {
-                resolve();
-            }
+            } else { resolve(); }
         }
         type();
     });
 }
 
 async function playGame() {
-    const text = input.value.trim();
+    let text = input.value.trim();
     if (!text) return;
 
-    // VALIDACE: Pokud hra běží, povolíme jen A, B, C
+    // Pokud hra běží, vyčistíme vstup (např. z "A)" uděláme jen "A")
     if (gameStarted) {
-        const check = text.toUpperCase();
-        if (check !== 'A' && check !== 'B' && check !== 'C') {
-            output.innerHTML += `\n> ${text}\n<span class="error-msg">[SYSTÉM]: Neplatný vstup. Vyberte A, B nebo C.</span>\n`;
+        let cleanText = text.replace(/[^a-zA-Z]/g, "").toUpperCase(); // Odstraní závorky, tečky atd.
+        if (cleanText !== 'A' && cleanText !== 'B' && cleanText !== 'C') {
+            output.innerHTML += `\n> ${text}\n<span class="error-msg">[SYSTÉM]: Neplatný vstup. Napište pouze A, B nebo C.</span>\n`;
             input.value = '';
             output.scrollTop = output.scrollHeight;
             return;
         }
+        text = cleanText; // Pošleme na server jen čisté písmeno
     }
 
     output.innerHTML += `\n> ${text}\n`;
     const isStartTurn = !gameStarted;
     input.value = '';
     input.disabled = true;
-    btn.disabled = true;
 
     const typingMsg = document.createElement('div');
     typingMsg.className = 'system-msg';
-    typingMsg.innerText = '[ AI přemýšlí... ]';
+    typingMsg.innerText = '[ AI generuje pokračování... ]';
     output.appendChild(typingMsg);
 
     try {
         const response = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                prompt: text,
-                is_start: isStartTurn 
-            })
+            body: JSON.stringify({ prompt: text, is_start: isStartTurn })
         });
 
         const data = await response.json();
@@ -66,25 +61,22 @@ async function playGame() {
         await typeText(responseContainer, data.response);
         
         output.innerHTML += `\n--------------------------\n`;
-        gameStarted = true; // Hra oficiálně začala
+        gameStarted = true;
         
     } catch (err) {
         if(typingMsg) typingMsg.remove();
-        output.innerHTML += `\n<span class="error-msg">[CHYBA]: Server neodpovídá.</span>\n`;
+        output.innerHTML += `\n<span class="error-msg">[CHYBA]: Spojení se serverem selhalo.</span>\n`;
     } finally {
         input.disabled = false;
-        btn.disabled = false;
         input.focus();
         output.scrollTop = output.scrollHeight;
     }
 }
 
-// Funkce pro ukončení/reset hry
 stopBtn.onclick = () => {
-    output.innerHTML = "[ SYSTEM ]: Hra byla restartována.\nZadejte 3 slova pro začátek příběhu...\n--------------------------";
+    output.innerHTML = "[ SYSTEM ]: Hra restartována.\nZadejte 3 slova...\n--------------------------";
     gameStarted = false;
     input.value = '';
-    input.focus();
 };
 
 btn.onclick = playGame;
