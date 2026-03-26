@@ -6,51 +6,89 @@ const langSelect = document.getElementById('lang-select');
 
 let gameStarted = false;
 
-async function playGame() {
-    let text = input.value.trim();
-    if (!text) return;
+// Funkce pro plynulé vypisování textu
+async function typeWriter(text) {
+    const div = document.createElement('div');
+    div.className = 'ai-response';
+    output.appendChild(div);
+    
+    // Rozdělíme na znaky pro efekt psacího stroje
+    for (let char of text) {
+        div.innerHTML += char;
+        output.scrollTop = output.scrollHeight;
+        await new Promise(r => setTimeout(r, 10)); 
+    }
+}
 
+async function playGame() {
+    let rawText = input.value.trim();
+    if (!rawText) return;
+
+    let processedText = rawText;
     if (gameStarted) {
-        let cleanText = text.replace(/[^a-zA-Z]/g, "").toUpperCase();
-        if (!['A', 'B', 'C'].includes(cleanText)) {
-            output.innerHTML += `\n> ${text}\n[ SYSTEM ]: Vyberte A, B nebo C.\n`;
+        processedText = rawText.replace(/[^a-zA-Z]/g, "").toUpperCase();
+        if (!['A', 'B', 'C'].includes(processedText)) {
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'error-msg';
+            errorMsg.innerHTML = `\n> ${rawText}\n[ INVALID_INPUT ]: Vyberte A, B nebo C.`;
+            output.appendChild(errorMsg);
             input.value = '';
             return;
         }
-        text = cleanText;
     }
 
-    output.innerHTML += `\n> ${text}\n`;
+    // Zobrazení vstupu uživatele
+    const userDiv = document.createElement('div');
+    userDiv.style.color = '#fff';
+    userDiv.innerHTML = `<br>> ${rawText}`;
+    output.appendChild(userDiv);
+
     const isStart = !gameStarted;
     const currentLang = langSelect.value;
+    
     input.value = '';
     input.disabled = true;
+    btn.disabled = true;
+
+    // Animace načítání
+    const loading = document.createElement('div');
+    loading.innerHTML = "[ COMMUNICATING WITH NEURAL NETWORK... ]";
+    output.appendChild(loading);
 
     try {
         const response = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                prompt: text, 
+                prompt: processedText, 
                 is_start: isStart,
                 lang: currentLang 
             })
         });
 
         const data = await response.json();
-        output.innerHTML += `\n${data.response}\n--------------------------\n`;
+        loading.remove();
+        
+        await typeWriter(data.response);
+        
+        const line = document.createElement('div');
+        line.innerHTML = "------------------------------------------";
+        output.appendChild(line);
+        
         gameStarted = true;
     } catch (err) {
-        output.innerHTML += `\n[ ERROR ]\n`;
+        loading.innerHTML = "[ CRITICAL_ERROR ]: Připojení ztraceno.";
     } finally {
         input.disabled = false;
+        btn.disabled = false;
         input.focus();
         output.scrollTop = output.scrollHeight;
     }
 }
 
 stopBtn.onclick = () => {
-    location.reload(); // Nejrychlejší reset i s vymazáním paměti
+    output.innerHTML = "[ SYSTEM SHUTDOWN ]";
+    setTimeout(() => location.reload(), 500);
 };
 
 btn.onclick = playGame;
