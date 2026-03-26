@@ -1,3 +1,4 @@
 flask
 openai
 httpx
+python-dotenv
