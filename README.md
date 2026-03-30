@@ -1,68 +1,160 @@
-# 🌀 Labirint-AI: School System Breach v2.5
+# 🧠 Labirint-AI
 
-![Status](https://img.shields.io/badge/STATUS-OPERATIONAL-00ff41?style=for-the-badge)
-![Docker](https://img.shields.io/badge/DOCKER-ENABLED-blue?style=for-the-badge&logo=docker)
-![AI](https://img.shields.io/badge/AI-GEMMA--3-purple?style=for-the-badge)
-
-**Labirint-AI** je interaktivní kybernetická simulace. Cílem hráče je v roli studenta nabourat školní databázi (Cyber-Lincoln High, USA) a upravit své známky. Příběh a bezpečnostní protokoly jsou dynamicky generovány pomocí LLM modelu Gemma 3.
+Interaktivní AI hra, která kombinuje **učení + hacking simulaci + mini-game mechaniky**.
 
 ---
 
-## 🕹️ Herní Mechaniky
+## 🎮 O projektu
 
-Hra kombinuje textové RPG s prvky **RAG (Retrieval-Augmented Generation)** a časovým tlakem:
+Labirint-AI je mini hra, kde hráč komunikuje s AI terminálem.
 
-* **Neural Injection**: Na začátku zadáte 3 klíčová slova, která definují téma vašich hackerských testů.
-* **Security Queries**: AI generuje vědomostní otázky na základě vybraných témat.
-* **Time Attack**: Každý průnik do systému je monitorován. Hráč má omezený čas na správnou odpověď, jinak je spojení ukončeno.
-* **RAG Knowledge**: Simulace využívá lokální lore uložený v `/data/game_info.txt` pro autentický zážitek ze školního prostředí.
+Můžeš:
 
----
+* 📄 nahrát dokument (např. poznámky)
+* 💬 nebo jen napsat téma (např. `DNS, DHCP, IPv4, IPv6`)
 
-## 🛠️ Technický Stack
-
-| Komponenta | Technologie | Funkce |
-| :--- | :--- | :--- |
-| **Backend** | Python / Flask | API endpointy a správa herní logiky. |
-| **AI Engine** | OpenAI API (Gemma 3) | Generování příběhu, ASCII artu a úkolů. |
-| **Frontend** | HTML5 / CSS3 / JS | CRT vizuál, typewriter efekt a systémový časovač. |
-| **Kontejnerizace** | Docker & Compose | Automatizace nasazení a správa portů. |
+AI následně vytvoří **interaktivní test ve stylu "hacking terminálu"**.
 
 ---
 
-## 📂 Struktura Projektu
+## 🕹️ Jak hra funguje
 
-```text
-├── app.py              # Flask server a RAG logika
-├── Dockerfile          # Definice Docker obrazu
-├── docker-compose.yml  # Orchestrace kontejneru a portů
-├── requirements.txt    # Python závislosti
-├── data/
-│   └── game_info.txt   # Lokální RAG databáze (Lore školy)
-├── static/
-│   ├── css/style.css   # Cyberpunk design a CRT efekty
-│   └── js/script.js    # Klientská logika, validace a timer
-└── templates/
-    └── index.html      # Hlavní terminálové rozhraní
+1. Zadáš téma nebo dokument
+2. AI spustí simulaci "hackování systému"
+3. Dostaneš otázku + 3 možnosti:
+
+   * A
+   * B
+   * C
+4. Musíš projít všechny otázky
+
+---
+
+## 💀 Když selžeš
+
+Pokud test neprojdeš:
+
+* 🎮 dostaneš možnost zahrát mini-hru
+* ⚔️ porazíš "bosse"
+* 🔓 získáš druhou šanci
+
+---
+
+## 🧠 Po úspěšném dokončení
+
+AI ti zobrazí:
+
+* detailní analýzu odpovědí
+* kde jsi udělal chyby
+* vysvětlení správných odpovědí
+* doporučení co se doučit
+
+---
+
+## 🚀 Deploy (ITHope server)
+
+Projekt je připraven na jednoduchý deploy přes Docker.
+
+### Požadavky:
+
+* Dockerfile v rootu
+* aplikace musí běžet na PORT z env
+
+---
+
+## ⚙️ Environment variables
+
+Nikdy nedávej do Gitu reálné klíče!
+
+Vytvoř `.env` lokálně:
+
 ```
-🚀 Rychlé Spuštění
-Pro spuštění simulace v lokálním prostředí vyžadujete nainstalovaný Docker.
+OPENAI_API_KEY=your-api-key
+OPENAI_BASE_URL=https://kurim.ithope.eu/v1
+```
 
-1.Klonování repozitáře:
-git clone [https://github.com/morikod/Labirint-AI.git](https://github.com/morikod/Labirint-AI.git)
-cd Labirint-AI
-Sestavení a spuštění pomocí Docker Compose:
+---
 
-Bash
-docker-compose up --build
-Přístup k terminálu:
-Otevřete prohlížeč na adrese http://localhost:5000.
+## 🐳 Dockerfile (example)
 
-⚙️ Konfigurace Simulace
-Před spuštěním se ujistěte, že máte v systému (nebo v .env souboru) nastaveny proměnné prostředí:
+```dockerfile
+FROM python:3.12-slim
 
-OPENAI_API_KEY: Váš API klíč pro přístup k modelu.
+WORKDIR /app
 
-OPENAI_BASE_URL: URL adresa AI serveru (např. https://kurim.ithope.eu/v1).
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-CRITICAL WARNING: Neautorizovaný přístup do školní databáze je v reálném světě trestným činem. Tato aplikace slouží pouze pro vzdělávací účely.
+COPY . .
+
+CMD ["python", "app.py"]
+```
+
+---
+
+## 🧩 Použití AI API (example)
+
+```python
+from openai import OpenAI
+import httpx
+
+client = OpenAI(
+    api_key=os.environ.get("OPENAI_API_KEY"),
+    base_url=os.environ.get("OPENAI_BASE_URL"),
+    http_client=httpx.Client(verify=False)
+)
+```
+
+---
+
+## 📁 Struktura projektu (doporučená)
+
+```
+/app.py
+/game/
+  logic.py
+  questions.py
+/api/
+  routes.py
+/static/
+README.md
+requirements.txt
+Dockerfile
+.gitignore
+```
+
+---
+
+## 🧠 Nápad projektu
+
+Cíl projektu:
+
+> Udělat učení zábavnější pomocí AI, gamifikace a simulace hackování.
+
+---
+
+## 🔮 Možná vylepšení
+
+* 🌐 Web UI (React / jednoduchý HTML)
+* 🧾 historie pokusů
+* 🧑‍💻 multiplayer (soutěžení)
+* 📊 score systém
+* 🎯 různé obtížnosti
+
+---
+
+## ⚠️ Bezpečnost
+
+* nikdy necommituj `.env`
+* nikdy nesdílej API klíč veřejně
+* používej environment variables
+
+---
+
+## 👨‍💻 Autor
+
+Projekt vytvořen jako experiment kombinující:
+
+* AI
+* hry
+* vzdělávání
