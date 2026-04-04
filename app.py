@@ -83,3 +83,7 @@ def check_answer():
         return jsonify({"status": "wrong", "correct": correct_answer})
     
     return generate_question(user_id)
+if __name__ == "__main__":
+    # Получаем динамический порт от платформы ITHope
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
