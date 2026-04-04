@@ -148,3 +148,45 @@ button:hover {
     padding: 5px;
     margin-right: 10px;
 }
+
+@media screen and (max-width: 600px) {
+    #game-container {
+        width: 100%;
+        height: 100vh;
+        border: none;
+        padding: 10px;
+    }
+    
+    #output {
+        font-size: 0.9rem;
+    }
+
+    .input-wrapper {
+        flex-direction: column;
+        padding: 10px;
+    }
+
+    input {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    button {
+        width: 100%;
+        margin-left: 0;
+    }
+}
+
+/* Стили для мини-игры Boss Fight */
+.boss-arena {
+    text-align: center;
+    font-size: 2rem;
+    color: #ff3333;
+    margin-top: 20px;
+}
+.letter-target {
+    font-size: 4rem;
+    border: 2px solid #ff3333;
+    padding: 20px;
+    display: inline-block;
+}
