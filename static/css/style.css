@@ -14,179 +14,117 @@ body {
     height: 100vh;
     margin: 0;
     overflow: hidden;
-    text-shadow: 0 0 5px var(--neon-green);
 }
 
-/* CRT Scanlines & Overlay */
+/* Эффекты монитора */
 .crt-overlay {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 100%),
-                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
-                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background: radial-gradient(circle, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 100%);
+    pointer-events: none;
     z-index: 10;
-    pointer-events: none;
 }
 
-.scanlines {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(to bottom, transparent 50%, rgba(0, 255, 65, 0.02) 50%);
-    background-size: 100% 4px;
-    z-index: 11;
-    pointer-events: none;
-}
-
-/* Hlavní kontejner */
 #game-container {
     width: 90%;
     max-width: 1000px;
-    height: 80vh;
+    height: 90vh;
     border: 1px solid var(--neon-green);
-    background: rgba(0, 20, 0, 0.85);
-    backdrop-filter: blur(10px);
+    background: rgba(0, 10, 0, 0.9);
     padding: 20px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 0 30px rgba(0, 255, 65, 0.1), inset 0 0 10px rgba(0, 255, 65, 0.1);
     position: relative;
-    animation: container-entry 0.8s ease-out;
-}
-
-@keyframes container-entry {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--neon-green);
-    padding-bottom: 10px;
-}
-
-.status-blink {
-    animation: blink 1.5s infinite;
-}
-
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
 }
 
 #output {
     flex-grow: 1;
     overflow-y: auto;
-    font-size: 1.1rem;
-    line-height: 1.6;
-    padding-right: 15px;
     margin-bottom: 20px;
+    font-size: 1.1rem;
+    line-height: 1.4;
 }
 
 /* Custom Scrollbar */
-.custom-scroll::-webkit-scrollbar { width: 6px; }
-.custom-scroll::-webkit-scrollbar-thumb { background: var(--neon-green); box-shadow: 0 0 5px var(--neon-green); }
+.custom-scroll::-webkit-scrollbar { width: 5px; }
+.custom-scroll::-webkit-scrollbar-thumb { background: var(--neon-green); }
 
+.ai-response {
+    margin-bottom: 5px;
+    /* white-space контролируется через JS */
+}
+
+/* Boss UI - Теперь по центру! */
+#boss-ui {
+    display: none;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10, 0, 0, 0.95);
+    border: 2px dashed #ff3333;
+    color: #ff3333;
+    padding: 30px;
+    text-align: center;
+    z-index: 100;
+    box-shadow: 0 0 50px rgba(255, 0, 0, 0.3);
+}
+
+.boss-title {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+#dragon-container {
+    font-size: 0.8rem; /* Уменьшаем шрифт для ASCII дракона */
+    color: #ff3333;
+    margin: 15px 0;
+    white-space: pre; /* Критично для ASCII */
+}
+
+#target-char {
+    font-size: 5rem;
+    display: block;
+    color: #ff3333;
+    margin: 15px 0;
+}
+
+#boss-progress { font-size: 1.2rem; }
+
+/* Wrapper ввода */
 .input-wrapper {
     display: flex;
     align-items: center;
-    background: rgba(0, 255, 65, 0.05);
     border: 1px solid var(--neon-green);
-    padding: 5px 15px;
+    background: rgba(0, 20, 0, 0.5);
 }
 
-.prompt-char {
-    margin-right: 10px;
-    font-weight: bold;
-    animation: blink 0.8s infinite;
-}
-
-input {
+input[type="text"] {
     flex-grow: 1;
     background: transparent;
     border: none;
     color: var(--neon-green);
-    padding: 15px 0;
+    padding: 15px;
     font-family: inherit;
     font-size: 1.1rem;
     outline: none;
 }
 
+input[type="text"]::placeholder { color: rgba(0, 255, 65, 0.5); }
+
 button {
     background: transparent;
-    border: 1px solid var(--neon-green);
+    border: none;
+    border-left: 1px solid var(--neon-green);
     color: var(--neon-green);
-    padding: 10px 20px;
+    padding: 15px 25px;
     cursor: pointer;
     font-weight: bold;
-    transition: all 0.3s;
-    margin-left: 10px;
+    transition: all 0.2s;
 }
 
 button:hover {
     background: var(--neon-green);
     color: black;
-    box-shadow: 0 0 15px var(--neon-green);
-}
-
-#stop-btn {
-    border-color: #ff3333;
-    color: #ff3333;
-}
-
-#stop-btn:hover {
-    background: #ff3333;
-    color: white;
-    box-shadow: 0 0 15px #ff3333;
-}
-
-#lang-select {
-    background: transparent;
-    color: var(--neon-green);
-    border: 1px solid var(--neon-green);
-    padding: 5px;
-    margin-right: 10px;
-}
-
-@media screen and (max-width: 600px) {
-    #game-container {
-        width: 100%;
-        height: 100vh;
-        border: none;
-        padding: 10px;
-    }
-    
-    #output {
-        font-size: 0.9rem;
-    }
-
-    .input-wrapper {
-        flex-direction: column;
-        padding: 10px;
-    }
-
-    input {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-
-    button {
-        width: 100%;
-        margin-left: 0;
-    }
-}
-
-/* Стили для мини-игры Boss Fight */
-.boss-arena {
-    text-align: center;
-    font-size: 2rem;
-    color: #ff3333;
-    margin-top: 20px;
-}
-.letter-target {
-    font-size: 4rem;
-    border: 2px solid #ff3333;
-    padding: 20px;
-    display: inline-block;
 }
