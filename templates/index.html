@@ -1,40 +1,47 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>AI Dárkový Asistent</title>
-<link rel="stylesheet" href="/static/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Gift Guru | Идеальный подарок</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    <div class="app-container">
+        <div id="landing" class="screen active">
+            <div class="glow"></div>
+            <h1 class="typewriter">Привет! Я помогу найти идеальный подарок 🎁</h1>
+            <p>Хочешь быстро подобрать что-то прямо сейчас или создадим профиль для точных рекомендаций?</p>
+            <div class="buttons">
+                <button id="btn-quick" class="primary-btn">⚡ Быстрый подбор</button>
+                <button id="btn-full" class="secondary-btn">👤 Создать профиль</button>
+            </div>
+        </div>
 
-<div class="sidebar">
-    <h2>Profily</h2>
-    <button onclick="openForm()">+ Přidat</button>
-    <div id="profiles"></div>
-</div>
+        <div id="profile-setup" class="screen">
+            <h2>Создание профиля</h2>
+            <div class="form-group">
+                <input type="text" id="prof-name" placeholder="Имя получателя">
+                <input type="text" id="prof-relation" placeholder="Кем приходится? (друг, мама...)">
+                <input type="text" id="prof-interests" placeholder="Интересы (игры, спорт, музыка)">
+                <button id="btn-save-profile" class="primary-btn">Сохранить и начать</button>
+            </div>
+        </div>
 
-<div class="main">
-    <div id="welcome" class="welcome"></div>
-    <div id="chat"></div>
-    <div class="input-area">
-        <input id="message" placeholder="Zeptej se AI...">
-        <button onclick="sendMessage()">➤</button>
+        <div id="chat-interface" class="screen">
+            <div class="chat-header">
+                <span>🤖 AI Gift Guru</span>
+                <span id="current-mode" class="badge">Quick Mode</span>
+            </div>
+            <div id="chat-box" class="chat-box custom-scroll"></div>
+            
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="Опиши, кому ищем подарок..." autocomplete="off">
+                <button id="send-btn">➤</button>
+            </div>
+        </div>
     </div>
-</div>
 
-<div id="form" class="modal hidden">
-    <h3>Nový profil</h3>
-    <input id="name" placeholder="Jméno">
-
-    <div class="tags" id="tagContainer"></div>
-
-    <textarea id="desc" placeholder="Popis osoby"></textarea>
-    <input id="budget" placeholder="Rozpočet (Kč)">
-    <input id="reason" placeholder="Příležitost">
-
-    <button onclick="createProfile()">Uložit</button>
-</div>
-
-<script src="/static/script.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
