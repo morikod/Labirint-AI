@@ -1,10 +1,20 @@
-version: '3.8'
 services:
   app:
     build: .
     ports:
       - "5000"
     environment:
+      - DATABASE_URL=postgresql://user:heslo@db:5432/gift_db
+      - REDIS_HOST=cache
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_BASE_URL=https://kurim.ithope.eu/v1
 
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=heslo
+      - POSTGRES_DB=gift_db
+
+  cache:
+    image: redis:7-alpine
