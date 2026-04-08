@@ -1,6 +1,5 @@
 # 🧩 Labirint-AI
 
-[![License: MIT](https://img.shields.io/badge/Licence-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: Active](https://img.shields.io/badge/Stav-Aktivn%C3%AD-brightgreen.svg)](#)
 [![Demo](https://img.shields.io/badge/Live-Demo-blue)](https://denys-voloshyn.kurim.ithope.eu/)
 
@@ -70,5 +69,4 @@ Pokud máte dotazy nebo návrhy na vylepšení projektu:
 
 ---
 
-### Licence
-Tento projekt je šířen pod licencí **MIT**. Podrobnosti naleznete v souboru `LICENSE`.
+
