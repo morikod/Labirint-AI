@@ -1,4 +1,4 @@
-# 🧩 Labirint-AI
+# 🧩 GiftMind
 
 [![Status: Active](https://img.shields.io/badge/Stav-Aktivn%C3%AD-brightgreen.svg)](#)
 [![Demo](https://img.shields.io/badge/Live-Demo-blue)](https://denys-voloshyn.kurim.ithope.eu/)
