@@ -1,3 +1,22 @@
+// ── Session token ──────────────────────────────────────
+const SESSION_TOKEN = (() => {
+  const KEY = 'giftmind_session';
+  let t = localStorage.getItem(KEY);
+  if (!t) {
+    t = 'u-' + ([...Array(4)].map(() =>
+      Math.random().toString(36).slice(2, 8)).join('-'));
+    localStorage.setItem(KEY, t);
+  }
+  return t;
+})();
+
+function apiFetch(url, options = {}) {
+  options.headers = options.headers || {};
+  options.headers['X-Session-Token'] = SESSION_TOKEN;
+  return fetch(url, options);
+}
+
+// ── App ────────────────────────────────────────────────
 const App = (() => {
 
   let currentScreen = 'screen-landing';
@@ -17,7 +36,6 @@ const App = (() => {
     '🏔️ Turistika', '🎲 Společenské hry',
   ];
 
-  // ── Init ───────────────────────────────────────────────
   function init() {
     buildTagGrid();
     loadProfiles();
@@ -27,7 +45,6 @@ const App = (() => {
     });
   }
 
-  // ── Typewriter ─────────────────────────────────────────
   function typewriterEffect(elemId, text, speed, cb) {
     const el = document.getElementById(elemId);
     el.textContent = '';
@@ -38,7 +55,6 @@ const App = (() => {
     }, speed);
   }
 
-  // ── Toast ──────────────────────────────────────────────
   function toast(msg, duration = 2800) {
     let el = document.getElementById('toast');
     if (!el) {
@@ -53,7 +69,6 @@ const App = (() => {
     el._t = setTimeout(() => el.classList.remove('show'), duration);
   }
 
-  // ── Screens ────────────────────────────────────────────
   function showScreen(id) {
     previousScreen = currentScreen;
     document.getElementById(currentScreen).classList.remove('active');
@@ -64,7 +79,6 @@ const App = (() => {
 
   function goBack() { showScreen(previousScreen); }
 
-  // ── Quick mode ─────────────────────────────────────────
   function startQuick() {
     activeProfile = null;
     messages = [];
@@ -78,14 +92,12 @@ const App = (() => {
     }, 300);
   }
 
-  // ── Sidebar ────────────────────────────────────────────
   function toggleSidebar() {
     const sb = document.getElementById('sidebar');
     sidebarOpen = !sidebarOpen;
     sb.classList.toggle('open', sidebarOpen);
   }
 
-  // ── Tags ───────────────────────────────────────────────
   function buildTagGrid() {
     const grid = document.getElementById('tag-grid');
     if (!grid) return;
@@ -103,10 +115,9 @@ const App = (() => {
     return [...document.querySelectorAll('.tag-chip.selected')].map(c => c.textContent);
   }
 
-  // ── Profiles ───────────────────────────────────────────
   async function loadProfiles() {
     try {
-      const res = await fetch('/api/profiles');
+      const res = await apiFetch('/api/profiles');
       profiles = await res.json();
       renderProfileList();
     } catch { profiles = []; }
@@ -122,11 +133,12 @@ const App = (() => {
     profiles.forEach(p => {
       const card = document.createElement('div');
       card.className = 'profile-card' + (activeProfile?.id === p.id ? ' active' : '');
+      const pJson = escAttr(JSON.stringify(p));
       card.innerHTML = `
         <div class="profile-card-name">${escHtml(p.name)}</div>
         <div class="profile-card-meta">${escHtml(p.relation || '')}${p.age ? ' · ' + p.age + ' let' : ''}</div>
         <div class="profile-card-actions">
-          <button class="btn-chat-small" onclick="event.stopPropagation();App.selectProfile(${JSON.stringify(JSON.stringify(p))})">💬 Chat</button>
+          <button class="btn-chat-small" onclick="event.stopPropagation();App.selectProfile('${pJson}')">💬 Chat</button>
           <button class="btn-delete" onclick="event.stopPropagation();App.askDelete('${p.id}')">🗑️ Smazat</button>
         </div>`;
       card.onclick = () => selectProfile(p);
@@ -152,7 +164,6 @@ const App = (() => {
     }, 300);
   }
 
-  // ── Delete profile ─────────────────────────────────────
   function askDelete(id) {
     pendingDeleteId = id;
     document.getElementById('modal-confirm').classList.remove('hidden');
@@ -166,7 +177,7 @@ const App = (() => {
   async function confirmDelete() {
     if (!pendingDeleteId) return;
     try {
-      await fetch(`/api/profile/${pendingDeleteId}`, { method: 'DELETE' });
+      await apiFetch(`/api/profile/${pendingDeleteId}`, { method: 'DELETE' });
       profiles = profiles.filter(p => p.id !== pendingDeleteId);
       if (activeProfile?.id === pendingDeleteId) {
         activeProfile = null;
@@ -176,9 +187,7 @@ const App = (() => {
       }
       renderProfileList();
       toast('✅ Profil byl smazán');
-    } catch {
-      toast('❌ Chyba při mazání');
-    }
+    } catch { toast('❌ Chyba při mazání'); }
     closeConfirm();
   }
 
@@ -200,14 +209,14 @@ const App = (() => {
     };
 
     try {
-      const res = await fetch('/api/profile', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await apiFetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profile),
       });
       const data = await res.json();
       profiles.push(data.profile);
       renderProfileList();
-      // reset form
       document.getElementById('p-name').value = '';
       document.getElementById('p-age').value = '';
       document.getElementById('p-gender').value = '';
@@ -217,12 +226,9 @@ const App = (() => {
       document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('selected'));
       selectProfile(data.profile);
       toast('✅ Profil uložen!');
-    } catch {
-      alert('Chyba při ukládání profilu.');
-    }
+    } catch { alert('Chyba při ukládání profilu.'); }
   }
 
-  // ── Chat ───────────────────────────────────────────────
   function clearMessages() {
     document.getElementById('chat-messages').innerHTML = '';
     messages = [];
@@ -272,8 +278,9 @@ const App = (() => {
     messages.push({ role: 'user', content: text });
     showTyping();
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await apiFetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages, profile: activeProfile }),
       });
       const data = await res.json();
@@ -293,7 +300,6 @@ const App = (() => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }
 
-  // ── Save gift ──────────────────────────────────────────
   function showSaveGift() {
     starRating = 0;
     renderStars();
@@ -327,8 +333,9 @@ const App = (() => {
       profile_name: activeProfile?.name || 'Bez profilu',
     };
     try {
-      await fetch('/api/gift', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      await apiFetch('/api/gift', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(gift),
       });
       closeModal();
@@ -337,12 +344,11 @@ const App = (() => {
     } catch { alert('Chyba při ukládání.'); }
   }
 
-  // ── History ────────────────────────────────────────────
   async function loadHistory() {
     const list = document.getElementById('history-list');
     list.innerHTML = '<div class="empty-state">Načítám…</div>';
     try {
-      const res = await fetch('/api/gifts');
+      const res = await apiFetch('/api/gifts');
       const gifts = await res.json();
       if (!gifts.length) {
         list.innerHTML = '<div class="empty-state">Zatím žádné uložené dárky. 🎁</div>';
@@ -380,7 +386,7 @@ const App = (() => {
   async function deleteGift(id, btn) {
     btn.disabled = true;
     try {
-      await fetch(`/api/gift/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/gift/${id}`, { method: 'DELETE' });
       btn.closest('.history-card').remove();
       toast('🗑️ Dárek smazán');
       const list = document.getElementById('history-list');
@@ -389,7 +395,6 @@ const App = (() => {
     } catch { btn.disabled = false; toast('❌ Chyba při mazání'); }
   }
 
-  // ── Helpers ────────────────────────────────────────────
   function formatText(t) {
     return escHtml(t)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -400,6 +405,10 @@ const App = (() => {
     return String(s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function escAttr(s) {
+    return String(s).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
   }
 
   return {
