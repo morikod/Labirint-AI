@@ -28,6 +28,7 @@
 ### Instalace
 
 ```bashgit clone https://github.com/morikod/GiftMind.git
+```
 cd GiftMind
 pip install -r requirements.txt
 
@@ -40,9 +41,9 @@ OPENAI_BASE_URL=https://tvůj-server/v1
 PORT=5000
 
 ### Spuštění
-
+```
 ```bashpython app.py
-
+```
 Otevři prohlížeč na `http://localhost:5000`
 
 ---
@@ -56,7 +57,7 @@ docker run -p 5000:5000
 giftmind
 
 ---
-
+````
 ## ⚙️ Proměnné prostředí
 
 | Proměnná | Popis | Výchozí |
@@ -98,3 +99,4 @@ Lze snadno přepnout na jakýkoliv jiný model změnou proměnné prostředí.
 ## 📄 Licence
 
 MIT — volně použitelné a upravitelné.
+```
