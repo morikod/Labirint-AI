@@ -1,47 +1,207 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="cs">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Gift Guru | Идеальный подарок</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Labyrint – AI průvodce dárky</title>
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-    <div class="app-container">
-        <div id="landing" class="screen active">
-            <div class="glow"></div>
-            <h1 class="typewriter">Привет! Я помогу найти идеальный подарок 🎁</h1>
-            <p>Хочешь быстро подобрать что-то прямо сейчас или создадим профиль для точных рекомендаций?</p>
-            <div class="buttons">
-                <button id="btn-quick" class="primary-btn">⚡ Быстрый подбор</button>
-                <button id="btn-full" class="secondary-btn">👤 Создать профиль</button>
-            </div>
-        </div>
 
-        <div id="profile-setup" class="screen">
-            <h2>Создание профиля</h2>
-            <div class="form-group">
-                <input type="text" id="prof-name" placeholder="Имя получателя">
-                <input type="text" id="prof-relation" placeholder="Кем приходится? (друг, мама...)">
-                <input type="text" id="prof-interests" placeholder="Интересы (игры, спорт, музыка)">
-                <button id="btn-save-profile" class="primary-btn">Сохранить и начать</button>
-            </div>
-        </div>
+  <div class="bg-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+  </div>
 
-        <div id="chat-interface" class="screen">
-            <div class="chat-header">
-                <span>🤖 AI Gift Guru</span>
-                <span id="current-mode" class="badge">Quick Mode</span>
-            </div>
-            <div id="chat-box" class="chat-box custom-scroll"></div>
-            
-            <div class="input-area">
-                <input type="text" id="user-input" placeholder="Опиши, кому ищем подарок..." autocomplete="off">
-                <button id="send-btn">➤</button>
-            </div>
-        </div>
+  <!-- ======= LANDING ======= -->
+  <div id="screen-landing" class="screen active">
+    <div class="landing-center">
+      <div class="ai-avatar">
+        <div class="avatar-ring"></div>
+        <div class="avatar-ring ring2"></div>
+        <div class="avatar-core">🎁</div>
+      </div>
+      <h1 class="logo-title">Labyrint</h1>
+      <p class="logo-sub">AI průvodce výběrem dárků</p>
+      <div class="typewriter-box">
+        <p id="greeting-text" class="greeting"></p>
+        <span class="tw-cursor">|</span>
+      </div>
+      <div id="landing-buttons" class="landing-buttons hidden">
+        <button class="btn btn-primary" onclick="App.startQuick()">
+          ⚡ Rychlý výběr
+        </button>
+        <button class="btn btn-outline" onclick="App.showScreen('screen-profile')">
+          👤 Vytvořit profil
+        </button>
+      </div>
     </div>
+  </div>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <!-- ======= CHAT ======= -->
+  <div id="screen-chat" class="screen">
+    <div class="chat-layout">
+
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+          <span>🎁 Labyrint</span>
+          <button class="btn-icon" onclick="App.toggleSidebar()">✕</button>
+        </div>
+        <button class="btn btn-outline sidebar-btn" onclick="App.showScreen('screen-profile')">
+          + Nový profil
+        </button>
+        <div class="sidebar-section-label">Uložené profily</div>
+        <div id="profile-list" class="profile-list"></div>
+        <div class="sidebar-footer">
+          <button class="btn btn-ghost sidebar-btn" onclick="App.showScreen('screen-history')">
+            📚 Historie dárků
+          </button>
+          <button class="btn btn-ghost sidebar-btn" onclick="App.showScreen('screen-landing')">
+            ← Domů
+          </button>
+        </div>
+      </aside>
+
+      <main class="chat-main">
+        <header class="chat-header">
+          <button class="btn-icon" onclick="App.toggleSidebar()">☰</button>
+          <div class="chat-header-center">
+            <span id="active-profile-name">Rychlý režim</span>
+            <span id="active-profile-badge" class="badge hidden"></span>
+          </div>
+          <button id="btn-save-gift" class="btn btn-sm btn-primary hidden"
+                  onclick="App.showSaveGift()">💾 Uložit dárek</button>
+        </header>
+
+        <div id="chat-messages" class="chat-messages">
+          <!-- zprávy se vkládají sem -->
+        </div>
+
+        <div class="chat-input-row">
+          <textarea id="chat-input" class="chat-input" rows="1"
+            placeholder="Napište zprávu…"
+            onkeydown="App.handleKey(event)"></textarea>
+          <button class="btn btn-primary btn-send" onclick="App.sendMessage()">
+            ➤
+          </button>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ======= PROFIL ======= -->
+  <div id="screen-profile" class="screen">
+    <div class="form-screen">
+      <button class="btn-back" onclick="App.goBack()">← Zpět</button>
+      <h2>👤 Nový profil příjemce</h2>
+      <p class="form-subtitle">Čím více informací zadáš, tím lepší dárky AI navrhne.</p>
+
+      <div class="form-group">
+        <label>Jméno *</label>
+        <input type="text" id="p-name" placeholder="Např. Tomáš" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Věk</label>
+          <input type="number" id="p-age" placeholder="25" min="1" max="120" />
+        </div>
+        <div class="form-group">
+          <label>Pohlaví</label>
+          <select id="p-gender">
+            <option value="">— nevybráno —</option>
+            <option value="muž">Muž</option>
+            <option value="žena">Žena</option>
+            <option value="jiné">Jiné</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Vztah k tobě</label>
+        <select id="p-relation">
+          <option value="">— nevybráno —</option>
+          <option value="přítel/přítelkyně">Přítel / Přítelkyně</option>
+          <option value="partner/partnerka">Partner / Partnerka</option>
+          <option value="kolega/kolegyně">Kolega / Kolegyně</option>
+          <option value="rodič">Rodič</option>
+          <option value="sourozenec">Sourozenec</option>
+          <option value="kamarád">Kamarád</option>
+          <option value="jiný">Jiný</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Zájmy a koníčky</label>
+        <div class="tag-grid" id="tag-grid"></div>
+      </div>
+      <div class="form-group">
+        <label>Vlastní zájmy (oddělte čárkou)</label>
+        <input type="text" id="p-custom-interests" placeholder="Např. vaření, fotografování" />
+      </div>
+      <div class="form-group">
+        <label>Poznámky / vzpomínky</label>
+        <textarea id="p-notes" rows="3"
+          placeholder="Např. Miluje hory, letos absolvoval kurz keramiky, sní o cestě do Japonska…"></textarea>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="App.saveProfile()">
+        ✅ Uložit profil a začít chat
+      </button>
+    </div>
+  </div>
+
+  <!-- ======= HISTORIE ======= -->
+  <div id="screen-history" class="screen">
+    <div class="form-screen">
+      <button class="btn-back" onclick="App.goBack()">← Zpět</button>
+      <h2>📚 Historie dárků</h2>
+      <div id="history-list" class="history-list"></div>
+    </div>
+  </div>
+
+  <!-- ======= MODAL: Uložit dárek ======= -->
+  <div id="modal-save-gift" class="modal hidden">
+    <div class="modal-box">
+      <h3>💾 Uložit dárek</h3>
+      <div class="form-group">
+        <label>Název dárku *</label>
+        <input type="text" id="sg-name" placeholder="Např. Kniha o horolezectví" />
+      </div>
+      <div class="form-group">
+        <label>Příležitost</label>
+        <select id="sg-occasion">
+          <option value="narozeniny">🎂 Narozeniny</option>
+          <option value="Vánoce">🎄 Vánoce</option>
+          <option value="výročí">💑 Výročí</option>
+          <option value="promoce">🎓 Promoce</option>
+          <option value="jen tak">🌸 Jen tak</option>
+          <option value="jiné">Jiné</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cena (Kč)</label>
+        <input type="number" id="sg-budget" placeholder="500" />
+      </div>
+      <div class="form-group">
+        <label>Moje hodnocení</label>
+        <div class="star-row" id="sg-stars">
+          <span class="star" data-v="1" onclick="App.setStar(1)">★</span>
+          <span class="star" data-v="2" onclick="App.setStar(2)">★</span>
+          <span class="star" data-v="3" onclick="App.setStar(3)">★</span>
+          <span class="star" data-v="4" onclick="App.setStar(4)">★</span>
+          <span class="star" data-v="5" onclick="App.setStar(5)">★</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Komentář</label>
+        <textarea id="sg-comment" rows="2" placeholder="Jak reagoval příjemce?"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="App.closeModal()">Zrušit</button>
+        <button class="btn btn-primary" onclick="App.confirmSaveGift()">Uložit</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/script.js"></script>
 </body>
 </html>
