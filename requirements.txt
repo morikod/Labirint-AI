@@ -1,3 +1,2 @@
-flask
-openai
-httpx
+flask==3.0.3
+openai==1.30.1
