@@ -1,7 +1,7 @@
 import os
 import json
 import uuid
-import hashlib
+import re
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
@@ -34,12 +34,16 @@ Pravidla:
 - Po navržení dárků se zeptej: "Který z návrhů se ti líbí nejvíc? Nebo chceš něco upřesnit?"
 - Pokud máš k dispozici profil příjemce, využij ta data co nejvíc"""
 
+# token smí obsahovat pouze písmena, čísla a pomlčky (bezpečnostní validace)
+TOKEN_RE = re.compile(r'^[a-zA-Z0-9\-]{8,64}$')
 
 def get_user_id():
-    """Anonymní ID uživatele z IP adresy (hash, nikdy se neukládá samotná IP)."""
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr or '0.0.0.0')
-    ip = ip.split(',')[0].strip()
-    return hashlib.sha256(ip.encode()).hexdigest()[:16]
+    """Čte anonymní token z hlavičky X-Session-Token."""
+    token = request.headers.get('X-Session-Token', '').strip()
+    if token and TOKEN_RE.match(token):
+        return token
+    # fallback — vygeneruj náhodný (pro API volání bez tokenu)
+    return 'anon-' + str(uuid.uuid4())
 
 
 def load_data():
@@ -123,7 +127,6 @@ def delete_profile(profile_id):
         p for p in data["profiles"]
         if not (p["id"] == profile_id and p.get("owner") == uid)
     ]
-    # smaž i dárky tohoto profilu patřící tomuto uživateli
     data["gifts"] = [
         g for g in data["gifts"]
         if not (g.get("profile_id") == profile_id and g.get("owner") == uid)
