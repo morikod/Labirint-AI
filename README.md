@@ -28,10 +28,10 @@
 ### Instalace
 
 ```bashgit clone https://github.com/morikod/GiftMind.git
-```
+
 cd GiftMind
 pip install -r requirements.txt
-
+```
 ### Konfigurace
 
 Vytvoř soubor `.env` (nikdy jej nepřidávej do Gitu!):
