@@ -301,3 +301,42 @@ select option { background: var(--surface2); }
   .form-row { grid-template-columns: 1fr; }
   .landing-buttons { flex-direction: column; width: 100%; max-width: 300px; }
 }
+/* ---- DELETE BUTTON ---- */
+.btn-danger {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(231,76,60,.35);
+}
+.btn-danger:hover { box-shadow: 0 6px 24px rgba(231,76,60,.55); }
+
+/* ---- PROFILE CARD ACTIONS ---- */
+.profile-card-actions {
+  display: flex; gap: 6px; margin-top: 8px;
+}
+.btn-delete {
+  background: rgba(231,76,60,.15); border: 1px solid rgba(231,76,60,.35);
+  color: #e74c3c; border-radius: 8px; padding: 3px 10px;
+  font-size: .78rem; cursor: pointer; transition: background .15s;
+}
+.btn-delete:hover { background: rgba(231,76,60,.3); }
+
+.btn-chat-small {
+  background: rgba(124,106,247,.15); border: 1px solid rgba(124,106,247,.35);
+  color: var(--accent); border-radius: 8px; padding: 3px 10px;
+  font-size: .78rem; cursor: pointer; transition: background .15s;
+}
+.btn-chat-small:hover { background: rgba(124,106,247,.3); }
+
+/* ---- TOAST ---- */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 12px 24px; border-radius: 30px;
+  font-size: .9rem; box-shadow: var(--shadow); z-index: 200;
+  transition: transform .3s ease, opacity .3s;
+  opacity: 0; pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ---- HISTORY DELETE ---- */
+.history-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
