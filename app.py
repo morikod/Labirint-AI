@@ -1,17 +1,18 @@
 import os
-import json
 import uuid
 import re
+import time
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
+from sqlalchemy import create_engine, text
 
 app = Flask(__name__)
 
-API_KEY = os.environ.get("OPENAI_API_KEY", "")
+API_KEY  = os.environ.get("OPENAI_API_KEY", "")
 BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://kurim.ithope.eu/v1")
-MODEL = "gemma3:27b"
-DATA_FILE = "/tmp/giftmind_data.json"
+MODEL    = "gemma3:27b"
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///local.db")
 
 client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
 
@@ -34,34 +35,80 @@ Pravidla:
 - Po navržení dárků se zeptej: "Který z návrhů se ti líbí nejvíc? Nebo chceš něco upřesnit?"
 - Pokud máš k dispozici profil příjemce, využij ta data co nejvíc"""
 
-# token smí obsahovat pouze písmena, čísla a pomlčky (bezpečnostní validace)
 TOKEN_RE = re.compile(r'^[a-zA-Z0-9\-]{8,64}$')
 
+# ── DB setup ────────────────────────────────────────────
+engine = None
+
+def init_db():
+    global engine
+    # Retry loop — Postgres startuje pomaleji než Flask
+    for i in range(15):
+        try:
+            engine = create_engine(DATABASE_URL)
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            break
+        except Exception as e:
+            print(f"Čekám na databázi... pokus {i+1} ({e})")
+            time.sleep(3)
+
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS profiles (
+                id          TEXT PRIMARY KEY,
+                owner       TEXT NOT NULL,
+                name        TEXT NOT NULL,
+                age         TEXT,
+                gender      TEXT,
+                relation    TEXT,
+                interests   TEXT,
+                notes       TEXT,
+                created_at  TEXT
+            )
+        """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS gifts (
+                id           TEXT PRIMARY KEY,
+                owner        TEXT NOT NULL,
+                profile_id   TEXT,
+                profile_name TEXT,
+                name         TEXT NOT NULL,
+                occasion     TEXT,
+                budget       TEXT,
+                my_rating    INTEGER,
+                my_comment   TEXT,
+                created_at   TEXT
+            )
+        """))
+        conn.commit()
+    print("✅ Databáze připravena")
+
+# ── Helpers ─────────────────────────────────────────────
 def get_user_id():
-    """Čte anonymní token z hlavičky X-Session-Token."""
     token = request.headers.get('X-Session-Token', '').strip()
     if token and TOKEN_RE.match(token):
         return token
-    # fallback — vygeneruj náhodný (pro API volání bez tokenu)
     return 'anon-' + str(uuid.uuid4())
 
+def row_to_profile(row):
+    return {
+        "id": row.id, "owner": row.owner, "name": row.name,
+        "age": row.age, "gender": row.gender, "relation": row.relation,
+        "interests": row.interests, "notes": row.notes,
+        "created_at": row.created_at,
+    }
 
-def load_data():
-    try:
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {"profiles": [], "gifts": []}
+def row_to_gift(row):
+    return {
+        "id": row.id, "owner": row.owner, "profile_id": row.profile_id,
+        "profile_name": row.profile_name, "name": row.name,
+        "occasion": row.occasion, "budget": row.budget,
+        "my_rating": row.my_rating, "my_comment": row.my_comment,
+        "created_at": row.created_at,
+    }
 
-
-def save_data(data):
-    try:
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
-
-
+# ── Routes ───────────────────────────────────────────────
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -71,107 +118,150 @@ def index():
 def chat():
     body = request.get_json()
     messages = body.get("messages", [])
-    profile = body.get("profile", None)
+    profile  = body.get("profile", None)
 
     system = SYSTEM_PROMPT
     if profile:
-        system += f"\n\nProfil příjemce dárku:\n"
-        system += f"Jméno: {profile.get('name', '—')}\n"
-        system += f"Věk: {profile.get('age', '—')}\n"
-        system += f"Vztah: {profile.get('relation', '—')}\n"
-        system += f"Zájmy: {profile.get('interests', '—')}\n"
-        system += f"Poznámky: {profile.get('notes', '—')}"
+        system += (
+            f"\n\nProfil příjemce dárku:\n"
+            f"Jméno: {profile.get('name','—')}\n"
+            f"Věk: {profile.get('age','—')}\n"
+            f"Vztah: {profile.get('relation','—')}\n"
+            f"Zájmy: {profile.get('interests','—')}\n"
+            f"Poznámky: {profile.get('notes','—')}"
+        )
 
     api_messages = [{"role": "system", "content": system}] + messages
 
     try:
         response = client.chat.completions.create(
-            model=MODEL,
-            messages=api_messages,
-            max_tokens=1000,
-            temperature=0.8,
+            model=MODEL, messages=api_messages,
+            max_tokens=1000, temperature=0.8,
         )
-        reply = response.choices[0].message.content
-        return jsonify({"reply": reply})
+        return jsonify({"reply": response.choices[0].message.content})
     except Exception as e:
-        return jsonify({"reply": f"Chyba připojení k AI: {str(e)}"}), 500
+        return jsonify({"reply": f"Chyba připojení k AI: {e}"}), 500
 
 
 @app.route("/api/profile", methods=["POST"])
 def save_profile():
-    uid = get_user_id()
-    data = load_data()
-    profile = request.get_json()
-    profile["id"] = str(uuid.uuid4())
-    profile["owner"] = uid
-    profile["created_at"] = datetime.now().isoformat()
-    data["profiles"].append(profile)
-    save_data(data)
+    uid  = get_user_id()
+    data = request.get_json()
+    pid  = str(uuid.uuid4())
+    now  = datetime.now().isoformat()
+
+    with engine.connect() as conn:
+        conn.execute(text("""
+            INSERT INTO profiles
+              (id, owner, name, age, gender, relation, interests, notes, created_at)
+            VALUES
+              (:id,:owner,:name,:age,:gender,:relation,:interests,:notes,:created_at)
+        """), {
+            "id": pid, "owner": uid,
+            "name": data.get("name",""), "age": data.get("age",""),
+            "gender": data.get("gender",""), "relation": data.get("relation",""),
+            "interests": data.get("interests",""), "notes": data.get("notes",""),
+            "created_at": now,
+        })
+        conn.commit()
+
+    profile = {"id": pid, "owner": uid, "created_at": now, **{
+        k: data.get(k,"") for k in ["name","age","gender","relation","interests","notes"]
+    }}
     return jsonify({"success": True, "profile": profile})
 
 
 @app.route("/api/profiles", methods=["GET"])
 def get_profiles():
     uid = get_user_id()
-    data = load_data()
-    my = [p for p in data["profiles"] if p.get("owner") == uid]
-    return jsonify(my)
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT * FROM profiles WHERE owner=:uid ORDER BY created_at"),
+            {"uid": uid}
+        ).fetchall()
+    return jsonify([row_to_profile(r) for r in rows])
 
 
 @app.route("/api/profile/<profile_id>", methods=["DELETE"])
 def delete_profile(profile_id):
     uid = get_user_id()
-    data = load_data()
-    before = len(data["profiles"])
-    data["profiles"] = [
-        p for p in data["profiles"]
-        if not (p["id"] == profile_id and p.get("owner") == uid)
-    ]
-    data["gifts"] = [
-        g for g in data["gifts"]
-        if not (g.get("profile_id") == profile_id and g.get("owner") == uid)
-    ]
-    save_data(data)
-    deleted = before > len(data["profiles"])
-    return jsonify({"success": deleted})
+    with engine.connect() as conn:
+        result = conn.execute(
+            text("DELETE FROM profiles WHERE id=:id AND owner=:uid"),
+            {"id": profile_id, "uid": uid}
+        )
+        conn.execute(
+            text("DELETE FROM gifts WHERE profile_id=:id AND owner=:uid"),
+            {"id": profile_id, "uid": uid}
+        )
+        conn.commit()
+    return jsonify({"success": result.rowcount > 0})
 
 
 @app.route("/api/gift", methods=["POST"])
 def save_gift():
-    uid = get_user_id()
-    data = load_data()
-    gift = request.get_json()
-    gift["id"] = str(uuid.uuid4())
-    gift["owner"] = uid
-    gift["created_at"] = datetime.now().isoformat()
-    data["gifts"].append(gift)
-    save_data(data)
+    uid  = get_user_id()
+    data = request.get_json()
+    gid  = str(uuid.uuid4())
+    now  = datetime.now().isoformat()
+
+    with engine.connect() as conn:
+        conn.execute(text("""
+            INSERT INTO gifts
+              (id,owner,profile_id,profile_name,name,occasion,budget,my_rating,my_comment,created_at)
+            VALUES
+              (:id,:owner,:profile_id,:profile_name,:name,:occasion,:budget,:my_rating,:my_comment,:created_at)
+        """), {
+            "id": gid, "owner": uid,
+            "profile_id":   data.get("profile_id"),
+            "profile_name": data.get("profile_name",""),
+            "name":         data.get("name",""),
+            "occasion":     data.get("occasion",""),
+            "budget":       data.get("budget",""),
+            "my_rating":    data.get("my_rating", 0),
+            "my_comment":   data.get("my_comment",""),
+            "created_at":   now,
+        })
+        conn.commit()
+
+    gift = {"id": gid, "owner": uid, "created_at": now, **{
+        k: data.get(k) for k in
+        ["profile_id","profile_name","name","occasion","budget","my_rating","my_comment"]
+    }}
     return jsonify({"success": True, "gift": gift})
 
 
 @app.route("/api/gifts", methods=["GET"])
 def get_gifts():
-    uid = get_user_id()
-    data = load_data()
+    uid        = get_user_id()
     profile_id = request.args.get("profile_id")
-    gifts = [g for g in data["gifts"] if g.get("owner") == uid]
-    if profile_id:
-        gifts = [g for g in gifts if g.get("profile_id") == profile_id]
-    return jsonify(gifts)
+    with engine.connect() as conn:
+        if profile_id:
+            rows = conn.execute(
+                text("SELECT * FROM gifts WHERE owner=:uid AND profile_id=:pid ORDER BY created_at"),
+                {"uid": uid, "pid": profile_id}
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                text("SELECT * FROM gifts WHERE owner=:uid ORDER BY created_at"),
+                {"uid": uid}
+            ).fetchall()
+    return jsonify([row_to_gift(r) for r in rows])
 
 
 @app.route("/api/gift/<gift_id>", methods=["DELETE"])
 def delete_gift(gift_id):
     uid = get_user_id()
-    data = load_data()
-    data["gifts"] = [
-        g for g in data["gifts"]
-        if not (g["id"] == gift_id and g.get("owner") == uid)
-    ]
-    save_data(data)
+    with engine.connect() as conn:
+        conn.execute(
+            text("DELETE FROM gifts WHERE id=:id AND owner=:uid"),
+            {"id": gift_id, "uid": uid}
+        )
+        conn.commit()
     return jsonify({"success": True})
 
 
 if __name__ == "__main__":
+    init_db()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
