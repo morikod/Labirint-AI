@@ -14,3 +14,4 @@ services:
       - POSTGRES_USER=student
       - POSTGRES_PASSWORD=heslo123
       - POSTGRES_DB=giftmind
+      - PGDATA=/data/pgdata
