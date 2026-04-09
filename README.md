@@ -85,8 +85,8 @@ GiftMind/
 ├── templates/
 │   └── index.html      # Single-page aplikace
 ├── static/
-│   ├── style.css       # Dark theme UI
-│   └── script.js       # Frontend logika
+│   ├── /css/style.css       # Dark theme UI
+│   └── /js/script.js       # Frontend logika
 ├── requirements.txt
 └── Dockerfile
 ```
