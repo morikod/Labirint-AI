@@ -90,6 +90,16 @@ def init_db():
                 created_at  TEXT
             )
         """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS chat_history (
+                id         TEXT PRIMARY KEY,
+                owner      TEXT NOT NULL,
+                profile_id TEXT,
+                role       TEXT NOT NULL,
+                content    TEXT NOT NULL,
+                created_at TEXT
+            )
+        """))
         conn.commit()
     print("✅ Databáze připravena")
 
@@ -141,7 +151,7 @@ def chat():
             f"Poznámky: {profile.get('notes','—')}"
         )
 
-    # ⭐ Подгружаем топ подарков из общей базы знаний
+    # Подгружаем топ подарков из общей базы знаний
     try:
         with engine.connect() as conn:
             rows = conn.execute(text("""
@@ -254,7 +264,7 @@ def save_gift():
             "created_at":   now,
         })
 
-        # ⭐ Если оценка 4 или 5 — сохраняем в общую базу знаний
+        # Если оценка 4 или 5 — сохраняем в общую базу знаний
         if data.get("my_rating", 0) >= 4:
             conn.execute(text("""
                 INSERT INTO gift_insights (id, occasion, interests, gift_name, rating, created_at)
@@ -304,6 +314,42 @@ def delete_gift(gift_id):
         )
         conn.commit()
     return jsonify({"success": True})
+
+
+@app.route("/api/history/save", methods=["POST"])
+def save_history():
+    uid  = get_user_id()
+    data = request.get_json()
+    now  = datetime.now().isoformat()
+    with engine.connect() as conn:
+        for msg in data.get("messages", []):
+            conn.execute(text("""
+                INSERT INTO chat_history (id, owner, profile_id, role, content, created_at)
+                VALUES (:id, :owner, :profile_id, :role, :content, :created_at)
+            """), {
+                "id":         str(uuid.uuid4()),
+                "owner":      uid,
+                "profile_id": data.get("profile_id"),
+                "role":       msg.get("role"),
+                "content":    msg.get("content"),
+                "created_at": now,
+            })
+        conn.commit()
+    return jsonify({"success": True})
+
+
+@app.route("/api/history", methods=["GET"])
+def get_history():
+    uid = get_user_id()
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT * FROM chat_history WHERE owner=:uid ORDER BY created_at DESC LIMIT 100"),
+            {"uid": uid}
+        ).fetchall()
+    return jsonify([{
+        "id": r.id, "role": r.role, "content": r.content,
+        "profile_id": r.profile_id, "created_at": r.created_at
+    } for r in rows])
 
 
 if __name__ == "__main__":
