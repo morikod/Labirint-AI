@@ -42,7 +42,6 @@ engine = None
 
 def init_db():
     global engine
-    # Retry loop — Postgres startuje pomaleji než Flask
     for i in range(15):
         try:
             engine = create_engine(DATABASE_URL)
@@ -81,6 +80,16 @@ def init_db():
                 created_at   TEXT
             )
         """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS gift_insights (
+                id          TEXT PRIMARY KEY,
+                occasion    TEXT,
+                interests   TEXT,
+                gift_name   TEXT,
+                rating      INTEGER,
+                created_at  TEXT
+            )
+        """))
         conn.commit()
     print("✅ Databáze připravena")
 
@@ -116,11 +125,12 @@ def index():
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    body = request.get_json()
+    body     = request.get_json()
     messages = body.get("messages", [])
     profile  = body.get("profile", None)
 
     system = SYSTEM_PROMPT
+
     if profile:
         system += (
             f"\n\nProfil příjemce dárku:\n"
@@ -130,6 +140,27 @@ def chat():
             f"Zájmy: {profile.get('interests','—')}\n"
             f"Poznámky: {profile.get('notes','—')}"
         )
+
+    # ⭐ Подгружаем топ подарков из общей базы знаний
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(text("""
+                SELECT gift_name, occasion, interests, rating
+                FROM gift_insights
+                ORDER BY rating DESC, created_at DESC
+                LIMIT 20
+            """)).fetchall()
+
+        if rows:
+            system += "\n\nOsvědčené dárky od jiných uživatelů (hodnocení 4-5⭐):\n"
+            for r in rows:
+                system += f"- {r.gift_name}"
+                if r.occasion:  system += f" (příležitost: {r.occasion})"
+                if r.interests: system += f" (zájmy: {r.interests})"
+                system += f" — {r.rating}⭐\n"
+            system += "\nTyto dárky se osvědčily — preferuj podobné nápady pokud se hodí."
+    except:
+        pass
 
     api_messages = [{"role": "system", "content": system}] + messages
 
@@ -222,6 +253,20 @@ def save_gift():
             "my_comment":   data.get("my_comment",""),
             "created_at":   now,
         })
+
+        # ⭐ Если оценка 4 или 5 — сохраняем в общую базу знаний
+        if data.get("my_rating", 0) >= 4:
+            conn.execute(text("""
+                INSERT INTO gift_insights (id, occasion, interests, gift_name, rating, created_at)
+                VALUES (:id, :occasion, :interests, :gift_name, :rating, :created_at)
+            """), {
+                "id":         str(uuid.uuid4()),
+                "occasion":   data.get("occasion", ""),
+                "interests":  data.get("profile_interests", ""),
+                "gift_name":  data.get("name", ""),
+                "rating":     data.get("my_rating", 0),
+                "created_at": now,
+            })
         conn.commit()
 
     gift = {"id": gid, "owner": uid, "created_at": now, **{
