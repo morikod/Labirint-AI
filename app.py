@@ -37,7 +37,7 @@ Pravidla:
 
 TOKEN_RE = re.compile(r'^[a-zA-Z0-9\-]{8,64}$')
 
-# ── DB setup ────────────────────────────────────────────
+
 engine = None
 
 def init_db():
@@ -103,7 +103,7 @@ def init_db():
         conn.commit()
     print("✅ Databáze připravena")
 
-# ── Helpers ─────────────────────────────────────────────
+
 def get_user_id():
     token = request.headers.get('X-Session-Token', '').strip()
     if token and TOKEN_RE.match(token):
@@ -127,7 +127,7 @@ def row_to_gift(row):
         "created_at": row.created_at,
     }
 
-# ── Routes ───────────────────────────────────────────────
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -151,7 +151,7 @@ def chat():
             f"Poznámky: {profile.get('notes','—')}"
         )
 
-    # Подгружаем топ подарков из общей базы знаний
+  
     try:
         with engine.connect() as conn:
             rows = conn.execute(text("""
@@ -264,7 +264,7 @@ def save_gift():
             "created_at":   now,
         })
 
-        # Если оценка 4 или 5 — сохраняем в общую базу знаний
+       
         if data.get("my_rating", 0) >= 4:
             conn.execute(text("""
                 INSERT INTO gift_insights (id, occasion, interests, gift_name, rating, created_at)
