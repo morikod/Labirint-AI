@@ -1,4 +1,4 @@
-// ── Session token ──────────────────────────────────────
+
 const SESSION_TOKEN = (() => {
   const KEY = 'giftmind_session';
   let t = localStorage.getItem(KEY);
@@ -16,7 +16,7 @@ function apiFetch(url, options = {}) {
   return fetch(url, options);
 }
 
-// ── App ────────────────────────────────────────────────
+
 const App = (() => {
 
   let currentScreen = 'screen-landing';
@@ -234,7 +234,7 @@ const App = (() => {
     messages = [];
   }
 
-  // Парсим подарки из ответа AI
+
   function extractGifts(text) {
     const gifts = [];
     const regex = /🎁\s+\*\*(.+?)\*\*/g;
@@ -294,7 +294,7 @@ const App = (() => {
     if (el) el.remove();
   }
 
-  // Сохраняем последние сообщения в базу
+  
   async function saveHistoryToDB() {
     if (!messages.length) return;
     try {
@@ -342,7 +342,7 @@ const App = (() => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }
 
-  // Принимает необязательный параметр giftName
+
   function showSaveGift(giftName = '') {
     starRating = 0;
     renderStars();
